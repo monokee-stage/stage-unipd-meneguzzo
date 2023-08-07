@@ -111,36 +111,47 @@ enum attestations {
 
 enum KProtection {
     'software' = 1,
-    'hardware',
-    'tee',
-    'secure_element',
-    'remote_handle'
+    'hardware' = 2,
+    'tee' = 4,
+    'secure_element' = 8,
+    'remote_handle' = 16
 };
 
 enum matcher {
     'software' = 1,
-    'tee',
-    'on_chip'
+    'tee' = 2,
+    'on_chip' = 4
 };
 
-class MetadataV2 {
+enum hint {
+    'internal' = 1,
+    'external' = 2,
+    'wired' = 4,
+    'wireless' = 8,
+    'nfc' = 16,
+    'bluetooth' = 32,
+    'network' = 64,
+    'ready' = 128,
+    'wifi_direct' = 256
+};
+
+enum display {
+    'any' = 1,
+    'privileged_software' = 2,
+    'tee' = 4,
+    'hardware' = 8,
+    'remote' = 16
+};
+
+class MetadataV3 {
     private constructor() {}
 
-    public static initialize<T extends MetadataV2>(data: T): MetadataV2 {
-        const result = new MetadataV2();
+    public static initialize<T extends MetadataV3>(data: T): MetadataV3 {
+        const result = new MetadataV3();
         const dataJson = JSON.stringify(data);
         Object.assign(result, JSON.parse(dataJson));
         return result;
     }
-
-    // public static initialize<T extends MetadataV2>(data: T) : MetadataV2 {
-    //     let result = new MetadataV2();
-    //     let property: keyof typeof data;
-    //     for(const property in data) {
-    //         result[property] = data[property];
-    //     }
-    //     return result;
-    // }
 
     private legalHeader?: string;
     public getLegalHeader() {
@@ -169,7 +180,7 @@ class MetadataV2 {
     public validateAAID(): boolean {
         //this field must be set if the authenticator implements FIDO UAF
         //è corretto? perchè prima di validarlo bisogna per forza settare assertionSchema
-        if(this.aaid && this.assertionSchema == 'UAFV1TLV' && !this.aaguid && /\d{4}[#]\d{4}/.test(this.aaid)) {
+        if(this.aaid && !this.aaguid && /\d{4}[#]\d{4}/.test(this.aaid)) {
             return true;
         } else {
             return false;
@@ -184,7 +195,7 @@ class MetadataV2 {
         this.aaguid = aaguid;
     }
     public validateAAGUID(): boolean {
-        if(this.aaguid && this.assertionSchema == 'FIDOV2' && !this.aaid) {
+        if(this.aaguid && !this.aaid) {
             // Regular expression to match UUID (8-4-4-4-12 format)
             const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             return uuidPattern.test(this.aaguid);
@@ -262,22 +273,30 @@ class MetadataV2 {
         return Number.isInteger(this.authenticatorVersion) && this.authenticatorVersion >= 0 && this.authenticatorVersion <= 65535;
     }  
 
-    private protocolFamily?: string = 'uaf';
+    private protocolFamily: string = '';
     public getProtocolFamily(): string | undefined {
         return this.protocolFamily;
     }
     public setProtocolFamily(protocolFamily: string) {
-        if(protocolFamily != '') {
-            this.protocolFamily = protocolFamily;
-        }
+        this.protocolFamily = protocolFamily;
     }
     public validateProtocolFamily(): boolean {
-        //è necessario questo if???
-        if (!this.protocolFamily) { return true; }
+        if (this.protocolFamily == '') { return false; }
         
         const validValues = ['uaf', 'u2f', 'FIDO2'];
         
         return validValues.includes(this.protocolFamily);
+    }
+
+    private schema: number = 3;
+    public getSchema(): number {
+        return this.schema;
+    }
+    public setSchema(schema: number) {
+        this.schema = schema;
+    }
+    public validateSchema(): boolean {
+        return this.schema == 3 ? true : false;
     }
 
     //campo dati marcato come readonly, non ha quindi senso mettere un setter
@@ -298,68 +317,33 @@ class MetadataV2 {
         return true;
     }
 
-    private assertionSchema: string = "";
-    public getAssertionSchema(): string {
-        return this.assertionSchema;
-    }
-    public setAssertionSchema(assertionSchema: string) {
-        this.assertionSchema = assertionSchema;
-    }
-    public validateAssertionSchema(): boolean {   
-        const validValues = ['UAFV1TLV', 'U2FV1BIN', 'FIDOV2'];
-        
-        return validValues.includes(this.assertionSchema);
-    }
-
-    private authenticationAlgorithm: number = 0;
-    public getAuthenticationAlgorithm(): number {
-        return this.authenticationAlgorithm;
-    }
-    public setAuthenticationAlgorithm(authenticationAlgorithm: number) {
-        this.authenticationAlgorithm = authenticationAlgorithm;
-    }
-    public validateAuthenticationAlgorithm(): boolean {
-        return this.authenticationAlgorithm in authAlgorithm;
-    }
-
-    private authenticationAlgorithms?: number[];
-    public getAuthenticationAlgorithms(): number[] | undefined {
+    private authenticationAlgorithms: string[] = [];
+    public getAuthenticationAlgorithms(): string[] | undefined {
         return this.authenticationAlgorithms;
     }
-    public setAuthenticationAlgorithms(authenticationAlgorithms: number[]) {
+    public setAuthenticationAlgorithms(authenticationAlgorithms: string[]) {
         this.authenticationAlgorithms = authenticationAlgorithms;
     }
     public validateAuthenticationAlgorithms(): boolean {
-        if(this.authenticationAlgorithms === undefined) { return true; }
-        
+        if(this.authenticationAlgorithms.length == 0) { return false; }
+
         for (const algorithm of this.authenticationAlgorithms) {
-            if (!(algorithm in authAlgorithm)) {
+            if(!(algorithm in authAlgorithm)) {
                 return false;
             }
         }
         return true;
     }
 
-    private publicKeyAlgAndEncoding: number = 0;
-    public getPublicKeyAlgAndEncoding(): number {
-        return this.publicKeyAlgAndEncoding;
-    }
-    public setPublicKeyAlgAndEncoding(publicKeyAlgAndEncoding: number) {
-        this.publicKeyAlgAndEncoding = publicKeyAlgAndEncoding;
-    }
-    public validatePublicKeyAlgAndEncoding():  boolean {
-        return this.publicKeyAlgAndEncoding in PKAlgAndEncodings;
-    }
-
-    private publicKeyAlgAndEncodings?: number[];
-    public getPublicKeyAlgAndEncodings(): number[] | undefined {
+    private publicKeyAlgAndEncodings: string[] = [];
+    public getPublicKeyAlgAndEncodings(): string[] {
         return this.publicKeyAlgAndEncodings;
     }
-    public setPublicKeyAlgAndEncodings(publicKeyAlgAndEncodings: number[]) {
+    public setPublicKeyAlgAndEncodings(publicKeyAlgAndEncodings: string[]) {
         this.publicKeyAlgAndEncodings = publicKeyAlgAndEncodings;
     }
     public validatePublicKeyAlgAndEncodings(): boolean {
-        if(this.publicKeyAlgAndEncodings === undefined) { return true; }
+        if(this.publicKeyAlgAndEncodings.length == 0) { return false; }
 
         for (const encoding of this.publicKeyAlgAndEncodings) {
             if (!(encoding in PKAlgAndEncodings)) {
@@ -369,11 +353,11 @@ class MetadataV2 {
         return true;
     }
 
-    private attestationTypes: number[] = [];
-    public getAttestationTypes(): number [] {
+    private attestationTypes: string[] = [];
+    public getAttestationTypes(): string[] {
         return this.attestationTypes;
     }
-    public setAttestationTypes(attestationTypes: number[]) {
+    public setAttestationTypes(attestationTypes: string[]) {
         this.attestationTypes = attestationTypes;
     }
     public validateAttestationTypes(): boolean {
@@ -408,11 +392,11 @@ class MetadataV2 {
         return true;
     }
 
-    private keyProtection: number = 0;
-    public getKeyProtection(): number {
+    private keyProtection: string = '';
+    public getKeyProtection(): string {
         return this.keyProtection;
     }
-    public setKeyProtection(keyProtection: number) {
+    public setKeyProtection(keyProtection: string) {
         this.keyProtection = keyProtection;
     }
     public validateKeyProtection(): boolean {
@@ -441,11 +425,11 @@ class MetadataV2 {
         return typeof this.isFreshUserVerificationRequired === 'undefined' || typeof this.isFreshUserVerificationRequired === 'boolean';
     }
 
-    private matcherProtection: number = 0;
-    public getMatcherProtection(): number {
+    private matcherProtection: string = '';
+    public getMatcherProtection(): string {
         return this.matcherProtection;
     }
-    public setMatcherProtection(matcherProtection: number) {
+    public setMatcherProtection(matcherProtection: string) {
         this.matcherProtection = matcherProtection
     }
     public validateMatcherProtection(): boolean {
@@ -489,17 +473,15 @@ class MetadataV2 {
         return validOperatingEnv.includes(this.operatingEnv);
     }
 
-    private attachmentHint: number = 0;
-    public getAttachmentHint(): number {
+    private attachmentHint: string = '';
+    public getAttachmentHint(): string {
         return this.attachmentHint;
     }
-    public setAttachmentHint(attachmentHint: number) {
+    public setAttachmentHint(attachmentHint: string) {
         this.attachmentHint = attachmentHint;
     }
     public validateAttachmentHint(): boolean {
-        const validHint = [1,2,4,8,16,32,64,128,256];
-        
-        return validHint.includes(this.attachmentHint);
+        return this.attachmentHint in hint;
     }
 
     //controllare se si può inizializzare meglio
@@ -514,35 +496,46 @@ class MetadataV2 {
         return typeof this.isSecondFactorOnly === 'boolean';
     }
 
-    private tcDisplay: number = 0;
-    public getTcDisplay(): number {
+    private tcDisplay?: string[];
+    public getTcDisplay(): string[] | undefined {
         return this.tcDisplay;
     }
-    public setTcDisplay(tcDisplay: number) {
+    public setTcDisplay(tcDisplay: string[]) {
         this.tcDisplay = tcDisplay;
     }
     public validateTcDisplay(): boolean {
-        const validTcDisplay = [0,1,2,4,8,16];
-        
-        return validTcDisplay.includes(this.tcDisplay);
+        if(!this.tcDisplay) { return true; }
+
+        for(const element in this.tcDisplay) {
+            if(!(element in display)) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    private tcDisplayContentType?: string;
-    public getTcDisplayContentType(): string | undefined {
+    private tcDisplayContentType?: string[];
+    public getTcDisplayContentType(): string[] | undefined {
         return this.tcDisplayContentType;
     }
-    public setTcDisplayContentType(tcDisplayContentType: string) {
+    public setTcDisplayContentType(tcDisplayContentType: string[]) {
         this.tcDisplayContentType = tcDisplayContentType;
     }
     public validateTcDisplayContentType(): boolean {
-        if(!this.tcDisplayContentType && this.getTcDisplay() == 0) { return true; }
-        
-        if(this.tcDisplayContentType) {
-            const allowedContentTypes = ['image/png', 'text/plain'];
+        if(this.getTcDisplay() != undefined && this.getTcDisplay()?.length != 0 && this.validateTcDisplay()) {
+            if(this.tcDisplayContentType && this.tcDisplayContentType.length != 0) {
+                const allowedContentTypes = ['image/png', 'text/plain'];
 
-            return allowedContentTypes.includes(this.tcDisplayContentType);
+                for(const element in this.tcDisplayContentType) {
+                    if(!(allowedContentTypes.includes(element))) {
+                        return false;
+                    }
+                }
+                return true
+            } else {
+                return false;
+            }
         }
-            
         return false;
     }
 
@@ -554,7 +547,7 @@ class MetadataV2 {
         this.tcDisplayPNGCharacteristics = tcDisplayPNGCharacteristics;
     }
     public validateTcDisplayPNGCharacteristics(): boolean {
-        if(this.getTcDisplay() != 0 && this.getTcDisplayContentType() == 'image/png') {
+        if(this.getTcDisplay() != undefined && this.getTcDisplay.length != 0 && this.getTcDisplayContentType()?.includes('image/png')) {
             if(this.tcDisplayPNGCharacteristics == undefined) {
                 return false; 
             } else {
@@ -571,7 +564,7 @@ class MetadataV2 {
                     );
                   };
                 
-                  return this.tcDisplayPNGCharacteristics.every(isValidEntry);
+                return this.tcDisplayPNGCharacteristics.every(isValidEntry);
             }
 
         } else {
@@ -620,7 +613,8 @@ class MetadataV2 {
         this.ecdaaTrustAnchors = ecdaaTrustAnchors;
     }
     public validateEcdaaTrustAnchors(): boolean {
-        if(this.getAttestationTypes().includes(attestations.ecdaa)) {
+        const ecdaa = 15581
+        if(this.getAttestationTypes().includes(attestations[ecdaa])) {
             if(this.ecdaaTrustAnchors === undefined) { return false; }
             else {
                 if (!this.ecdaaTrustAnchors.every(this.isValidEcdaaTrustAnchor)) {
