@@ -135,9 +135,16 @@ class MetadataV2 {
 
     // public static initialize<T extends MetadataV2>(data: T) : MetadataV2 {
     //     let result = new MetadataV2();
-    //     let property: keyof typeof data;
+    //     // let property: keyof typeof data;
     //     for(const property in data) {
-    //         result[property] = data[property];
+    //         if(data.hasOwnProperty(property)) {
+    //             // result[property] = data[property];
+    //             if (property === "legalHeader") {
+    //                 result.setLegalHeader(data[property] as string);
+    //             }
+    //         }
+            
+            
     //     }
     //     return result;
     // }
@@ -169,7 +176,7 @@ class MetadataV2 {
     public validateAAID(): boolean {
         //this field must be set if the authenticator implements FIDO UAF
         //è corretto? perchè prima di validarlo bisogna per forza settare assertionSchema
-        if(this.aaid && this.assertionSchema == 'UAFV1TLV' && !this.aaguid && /\d{4}[#]\d{4}/.test(this.aaid)) {
+        if(this.aaid && this.getAssertionScheme() === 'UAFV1TLV' && !this.getAAGUID() && /\d{4}[#]\d{4}/.test(this.aaid)) {
             return true;
         } else {
             return false;
@@ -184,7 +191,7 @@ class MetadataV2 {
         this.aaguid = aaguid;
     }
     public validateAAGUID(): boolean {
-        if(this.aaguid && this.assertionSchema == 'FIDOV2' && !this.aaid) {
+        if(this.aaguid && this.getAssertionScheme() === 'FIDOV2' && !this.getAAID()) {
             // Regular expression to match UUID (8-4-4-4-12 format)
             const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             return uuidPattern.test(this.aaguid);
@@ -298,17 +305,17 @@ class MetadataV2 {
         return true;
     }
 
-    private assertionSchema: string = "";
-    public getAssertionSchema(): string {
-        return this.assertionSchema;
+    private assertionScheme: string = "";
+    public getAssertionScheme(): string {
+        return this.assertionScheme;
     }
-    public setAssertionSchema(assertionSchema: string) {
-        this.assertionSchema = assertionSchema;
+    public setAssertionScheme(assertionScheme: string) {
+        this.assertionScheme = assertionScheme;
     }
-    public validateAssertionSchema(): boolean {   
+    public validateAssertionScheme(): boolean {   
         const validValues = ['UAFV1TLV', 'U2FV1BIN', 'FIDOV2'];
         
-        return validValues.includes(this.assertionSchema);
+        return validValues.includes(this.assertionScheme);
     }
 
     private authenticationAlgorithm: number = 0;
@@ -416,7 +423,19 @@ class MetadataV2 {
         this.keyProtection = keyProtection;
     }
     public validateKeyProtection(): boolean {
-        return this.keyProtection in KProtection;
+        let value = this.keyProtection;
+        const values = Object.keys(KProtection).filter((item) => {
+            return !(isNaN(Number(item)));
+        });
+        let u;
+        while(value != 0) {
+            for(const ele in KProtection) {
+                
+            }
+
+        }
+        return false;
+        // return this.keyProtection in KProtection;
     } 
 
     private isKeyRestricted: boolean = true;
@@ -709,4 +728,4 @@ class MetadataV2 {
     }
 }
 
-export { };
+export { MetadataV2 };
