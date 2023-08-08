@@ -111,10 +111,10 @@ enum attestations {
 
 enum KProtection {
     'software' = 1,
-    'hardware',
-    'tee',
-    'secure_element',
-    'remote_handle'
+    'hardware' = 2,
+    'tee' = 4,
+    'secure_element' = 8,
+    'remote_handle' = 16
 };
 
 enum matcher {
@@ -174,12 +174,17 @@ class MetadataV2 {
         this.aaid = aaid;
     }
     public validateAAID(): boolean {
-        //this field must be set if the authenticator implements FIDO UAF
-        //è corretto? perchè prima di validarlo bisogna per forza settare assertionSchema
-        if(this.aaid && this.getAssertionScheme() === 'UAFV1TLV' && !this.getAAGUID() && /\d{4}[#]\d{4}/.test(this.aaid)) {
-            return true;
-        } else {
+        if(this.getAssertionScheme() === 'UAFV1TLV' && !this.getAAGUID()) {
+            if(this.aaid) {
+                const aaidPattern = /\d{4}[#]\d{4}/;
+                return aaidPattern.test(this.aaid);
+            }
             return false;
+        }
+        if(this.aaid) {
+            return false;
+        } else {
+            return true;
         }
     }
 
@@ -191,12 +196,19 @@ class MetadataV2 {
         this.aaguid = aaguid;
     }
     public validateAAGUID(): boolean {
-        if(this.aaguid && this.getAssertionScheme() === 'FIDOV2' && !this.getAAID()) {
-            // Regular expression to match UUID (8-4-4-4-12 format)
-            const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            return uuidPattern.test(this.aaguid);
+        if(this.getAssertionScheme() === 'FIDOV2' && !this.getAAID()) {
+            if(this.aaguid) {
+                // Regular expression to match UUID (8-4-4-4-12 format)
+                const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                return uuidPattern.test(this.aaguid);
+            }
+            return false;
         }
-        return false;
+        if(this.aaguid) {
+            return false;
+        } else {
+            return true;
+        }
     }
       
 
@@ -208,16 +220,23 @@ class MetadataV2 {
         this.attestationCertificateKeyIdentifiers = attestationCertificateKeyIdentifiers;
     }
     public validateAttestationCertificateKeyIdentifiers(): boolean {
-        if(this.attestationCertificateKeyIdentifiers && !this.aaid && !this.aaguid) {
-            const hexPattern = /^[0-9a-f]+$/;
-            for (const identifier of this.attestationCertificateKeyIdentifiers) {
-                if (!hexPattern.test(identifier)) {
-                  return false;
+        if(!this.getAAID() && !this.getAAGUID()) {
+            if(this.attestationCertificateKeyIdentifiers) {
+                const hexPattern = /^[0-9a-f]+$/;
+                for (const identifier of this.attestationCertificateKeyIdentifiers) {
+                    if (!hexPattern.test(identifier)) {
+                    return false;
+                    }
                 }
+                return true;
             }
+            return false;
+        }
+        if(this.attestationCertificateKeyIdentifiers) {
+            return false;
+        } else {
             return true;
         }
-        return false;
     }
 
     private description: string = "";
@@ -279,7 +298,6 @@ class MetadataV2 {
         }
     }
     public validateProtocolFamily(): boolean {
-        //è necessario questo if???
         if (!this.protocolFamily) { return true; }
         
         const validValues = ['uaf', 'u2f', 'FIDO2'];
@@ -386,11 +404,13 @@ class MetadataV2 {
     public validateAttestationTypes(): boolean {
         if(this.attestationTypes.length == 0) { return false; }
 
-        for(const attestationType in this.attestationTypes) {
-            if(!(attestationType in attestations)) {
+        const attestationType = Object.values(this.attestationTypes);
+
+        attestationType.forEach((value) => {
+            if(!(value in attestations)) {
                 return false;
             }
-        }
+        })
         return true;
     }
 
@@ -423,19 +443,29 @@ class MetadataV2 {
         this.keyProtection = keyProtection;
     }
     public validateKeyProtection(): boolean {
-        let value = this.keyProtection;
-        const values = Object.keys(KProtection).filter((item) => {
-            return !(isNaN(Number(item)));
-        });
-        let u;
-        while(value != 0) {
-            for(const ele in KProtection) {
-                
-            }
+        let val = this.keyProtection;
+        const keys = Object.values(KProtection);
 
+        const arrayKeys: number[] = [];
+        keys.forEach((value) => {
+            if(!(isNaN(Number(value)))) {
+                arrayKeys.push(Number(value));
+            }
+        })
+        
+        while(val != 0) {
+            for(let i = 0; i<arrayKeys.length; i++) {
+                if(arrayKeys[i]>val) {
+                    val = val - arrayKeys[i-1];
+                    console.log(val);
+                    break;
+                }
+            }
+        }
+        if(val == 0) {
+            return true;
         }
         return false;
-        // return this.keyProtection in KProtection;
     } 
 
     private isKeyRestricted: boolean = true;
