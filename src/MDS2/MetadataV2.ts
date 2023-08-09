@@ -123,7 +123,7 @@ enum matcher {
     'on_chip' = 4
 };
 
-enum attachmentHintType {
+enum attachmentHintValues {
     'internal' = 1,
     'external' = 2,
     'wired' = 4,
@@ -135,13 +135,29 @@ enum attachmentHintType {
     'wifi_direct' = 256
 };
 
-enum tcDisplayType {
+enum tcDisplayValues {
     'any' = 1,
     'privileged_software' = 2,
     'tee' = 4,
     'hardware' = 8,
     'remote' = 16
-}
+};
+
+enum userVerificationValues {
+    'presence_internal' = 1,
+    'fingerprint_internal' = 2,
+    'passcode_internal' = 4,
+    'voiceprint_internal' = 8,
+    'faceprint_internal' = 16,
+    'location_internal' = 32,
+    'eyeprint_internal' = 64,
+    'pattern_internal' = 128,
+    'handprint_internal' = 256,
+    'passcode_external' = 2048,
+    'pattern_external' = 4096,
+    'none' = 512,
+    'all' = 1024
+};
 
 class MetadataV2 {
     private constructor() {}
@@ -445,10 +461,8 @@ class MetadataV2 {
     public validateUserVerificationDetails(): boolean {
         if(!this.userVerificationDetails) { return false; }
         
-        const validUserVerificationValues = [1,2,4,8,16,32,64,128,256,512,1024];
-
         for(const value of this.userVerificationDetails) {
-            if(!validUserVerificationValues.includes(value[0].userVerification)) {
+            if(!(value[0].userVerification in userVerificationValues)) {
                 return false;
             }
         }
@@ -607,7 +621,7 @@ class MetadataV2 {
     }
     public validateAttachmentHint(): boolean {
         let val = this.attachmentHint;
-        const keys = Object.values(attachmentHintType);
+        const keys = Object.values(attachmentHintValues);
 
         const arrayKeys: number[] = [];
         keys.forEach((value) => {
@@ -661,7 +675,7 @@ class MetadataV2 {
     }
     public validateTcDisplay(): boolean {
         let val = this.tcDisplay;
-        const keys = Object.values(tcDisplayType);
+        const keys = Object.values(tcDisplayValues);
 
         const arrayKeys: number[] = [];
         keys.forEach((value) => {
@@ -758,7 +772,6 @@ class MetadataV2 {
         this.attestationRootCertificates = attestationRootCertificates;
     } 
     public validateAttestationRootCertificates(): boolean {
-
         if(this.attestationRootCertificates.length == 0 || this.attestationRootCertificates === undefined) {
             return false;
         } 

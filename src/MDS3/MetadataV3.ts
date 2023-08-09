@@ -123,7 +123,7 @@ enum matcher {
     'on_chip' = 4
 };
 
-enum hint {
+enum attachmentHintValues {
     'internal' = 1,
     'external' = 2,
     'wired' = 4,
@@ -135,12 +135,28 @@ enum hint {
     'wifi_direct' = 256
 };
 
-enum display {
+enum tcDisplayValues {
     'any' = 1,
     'privileged_software' = 2,
     'tee' = 4,
     'hardware' = 8,
     'remote' = 16
+};
+
+enum userVerificationValues {
+    'presence_internal' = 1,
+    'fingerprint_internal' = 2,
+    'passcode_internal' = 4,
+    'voiceprint_internal' = 8,
+    'faceprint_internal' = 16,
+    'location_internal' = 32,
+    'eyeprint_internal' = 64,
+    'pattern_internal' = 128,
+    'handprint_internal' = 256,
+    'passcode_external' = 2048,
+    'pattern_external' = 4096,
+    'none' = 512,
+    'all' = 1024
 };
 
 class MetadataV3 {
@@ -178,12 +194,17 @@ class MetadataV3 {
         this.aaid = aaid;
     }
     public validateAAID(): boolean {
-        //this field must be set if the authenticator implements FIDO UAF
-        //è corretto? perchè prima di validarlo bisogna per forza settare assertionSchema
-        if(this.aaid && !this.aaguid && /\d{4}[#]\d{4}/.test(this.aaid)) {
-            return true;
-        } else {
+        if(this.getProtocolFamily() === 'uaf' && !this.getAAGUID()) {
+            if(this.aaid) {
+                const aaidPattern = /\d{4}[#]\d{4}/;
+                return aaidPattern.test(this.aaid);
+            }
             return false;
+        }
+        if(this.aaid) {
+            return false;
+        } else {
+            return true;
         }
     }
 
@@ -195,12 +216,19 @@ class MetadataV3 {
         this.aaguid = aaguid;
     }
     public validateAAGUID(): boolean {
-        if(this.aaguid && !this.aaid) {
-            // Regular expression to match UUID (8-4-4-4-12 format)
-            const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            return uuidPattern.test(this.aaguid);
+        if(this.getProtocolFamily() === 'fido2' && !this.getAAID()) {
+            if(this.aaguid) {
+                // Regular expression to match UUID (8-4-4-4-12 format)
+                const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                return uuidPattern.test(this.aaguid);
+            }
+            return false;
         }
-        return false;
+        if(this.aaguid) {
+            return false;
+        } else {
+            return true;
+        }
     }
       
 
@@ -212,16 +240,23 @@ class MetadataV3 {
         this.attestationCertificateKeyIdentifiers = attestationCertificateKeyIdentifiers;
     }
     public validateAttestationCertificateKeyIdentifiers(): boolean {
-        if(this.attestationCertificateKeyIdentifiers && !this.aaid && !this.aaguid) {
-            const hexPattern = /^[0-9a-f]+$/;
-            for (const identifier of this.attestationCertificateKeyIdentifiers) {
-                if (!hexPattern.test(identifier)) {
-                  return false;
+        if(!this.getAAID() && !this.getAAGUID()) {
+            if(this.attestationCertificateKeyIdentifiers) {
+                const hexPattern = /^[0-9a-f]+$/;
+                for (const identifier of this.attestationCertificateKeyIdentifiers) {
+                    if (!hexPattern.test(identifier)) {
+                    return false;
+                    }
                 }
+                return true;
             }
+            return false;
+        }
+        if(this.attestationCertificateKeyIdentifiers) {
+            return false;
+        } else {
             return true;
         }
-        return false;
     }
 
     private description: string = "";
@@ -283,7 +318,7 @@ class MetadataV3 {
     public validateProtocolFamily(): boolean {
         if (this.protocolFamily == '') { return false; }
         
-        const validValues = ['uaf', 'u2f', 'FIDO2'];
+        const validValues = ['uaf', 'u2f', 'fido2'];
         
         return validValues.includes(this.protocolFamily);
     }
@@ -363,11 +398,11 @@ class MetadataV3 {
     public validateAttestationTypes(): boolean {
         if(this.attestationTypes.length == 0) { return false; }
 
-        for(const attestationType in this.attestationTypes) {
-            if(!(attestationType in attestations)) {
+        this.attestationTypes.forEach((value) => {
+            if(!(value in attestations)) {
                 return false;
             }
-        }
+        })
         return true;
     }
 
@@ -384,23 +419,32 @@ class MetadataV3 {
         
         const validUserVerificationValues = [1,2,4,8,16,32,64,128,256,512,1024];
 
-        for(const value of this.userVerificationDetails) {
-            if(!validUserVerificationValues.includes(value[0].userVerification)) {
+        this.userVerificationDetails.forEach((value) => {
+            if(!(value[0].userVerification in userVerificationValues)) {
                 return false;
             }
-        }
+        })
+
         return true;
     }
 
-    private keyProtection: string = '';
-    public getKeyProtection(): string {
+    private keyProtection: string[] = [];
+    public getKeyProtection(): string[] {
         return this.keyProtection;
     }
-    public setKeyProtection(keyProtection: string) {
+    public setKeyProtection(keyProtection: string[]) {
         this.keyProtection = keyProtection;
     }
     public validateKeyProtection(): boolean {
-        return this.keyProtection in KProtection;
+        if(this.keyProtection.length == 0 || this.keyProtection === undefined) { return false; }
+    
+        this.keyProtection.forEach((value) => {
+            console.log(value)
+            if(!(value in KProtection)) {
+                return false;
+            }
+        })
+        return true;
     } 
 
     private isKeyRestricted: boolean = true;
@@ -481,7 +525,7 @@ class MetadataV3 {
         this.attachmentHint = attachmentHint;
     }
     public validateAttachmentHint(): boolean {
-        return this.attachmentHint in hint;
+        return this.attachmentHint in attachmentHintValues;
     }
 
     //controllare se si può inizializzare meglio
@@ -507,7 +551,7 @@ class MetadataV3 {
         if(!this.tcDisplay) { return true; }
 
         for(const element in this.tcDisplay) {
-            if(!(element in display)) {
+            if(!(element in tcDisplayValues)) {
                 return false;
             }
         }
@@ -579,27 +623,25 @@ class MetadataV3 {
     public setAttestationRootCertificates(attestationRootCertificates: string[]) {
         this.attestationRootCertificates = attestationRootCertificates;
     }
-    public isValidBase64(input: string): boolean {
-        try {
-          return Buffer.from(input, 'base64').toString('base64') === input;
-        } catch (error) {
-          return false;
-        }
-      }
       
     public validateAttestationRootCertificates(): boolean {
-        const { X509Certificate } = require('node:crypto');
+        if(this.attestationRootCertificates.length == 0 || this.attestationRootCertificates === undefined) {
+            return false;
+        } 
 
-        const isValidCertificate = (certificate: string) => {
-            let validValue = new Buffer(certificate);
-            const x509 = new X509Certificate(Buffer);
-          // Validate if the element is a valid base64-encoded DER-encoded PKIX certificate
-          return this.isValidBase64(certificate);
-        };
+        const { X509Certificate } = require('node:crypto');
+        
+        for (const certificate of this.attestationRootCertificates) {
+            if (typeof certificate !== 'string') {
+              return false;
+            }
       
-        // Check if each element in attestationRootCertificates is a valid certificate
-        if (!this.attestationRootCertificates.every(isValidCertificate)) {
-          return false;
+            try {
+              const certBuffer = Buffer.from(certificate, 'base64');
+              const x509Cert = new X509Certificate(certBuffer);
+            } catch (error) {
+              return false;
+            }
         }
         return true;
     }
@@ -703,4 +745,4 @@ class MetadataV3 {
     }
 }
 
-export { };
+export { MetadataV3 };

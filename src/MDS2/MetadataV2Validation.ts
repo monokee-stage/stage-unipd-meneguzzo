@@ -1,8 +1,8 @@
 import {MetadataV2} from './MetadataV2'
 
-export function validateMetadata(metadata: MetadataV2) {
+export function validateMetadataV2(metadata: MetadataV2) {
     
-    const validationErrors: string[] = [];
+  const validationErrors: string[] = [];
   // Perform your validation checks here
   // Return true if valid, false if invalid
   if (!metadata.validateLegalHeader()) {
@@ -129,7 +129,7 @@ export function validateMetadata(metadata: MetadataV2) {
     validationErrors.push('supportedExtensions is invalid');
   }
 
-  console.log(validationErrors)
+  console.log('error messages validation MetadataV2:', validationErrors)
 }
 
 // Define other validation functions here
