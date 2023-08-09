@@ -119,9 +119,29 @@ enum KProtection {
 
 enum matcher {
     'software' = 1,
-    'tee',
-    'on_chip'
+    'tee' = 2,
+    'on_chip' = 4
 };
+
+enum attachmentHintType {
+    'internal' = 1,
+    'external' = 2,
+    'wired' = 4,
+    'wireless' = 8,
+    'nfc' = 16,
+    'bluetooth' = 32,
+    'network' = 64,
+    'ready' = 128,
+    'wifi_direct' = 256
+};
+
+enum tcDisplayType {
+    'any' = 1,
+    'privileged_software' = 2,
+    'tee' = 4,
+    'hardware' = 8,
+    'remote' = 16
+}
 
 class MetadataV2 {
     private constructor() {}
@@ -300,7 +320,7 @@ class MetadataV2 {
     public validateProtocolFamily(): boolean {
         if (!this.protocolFamily) { return true; }
         
-        const validValues = ['uaf', 'u2f', 'FIDO2'];
+        const validValues = ['uaf', 'u2f', 'fido2'];
         
         return validValues.includes(this.protocolFamily);
     }
@@ -457,8 +477,17 @@ class MetadataV2 {
             for(let i = 0; i<arrayKeys.length; i++) {
                 if(arrayKeys[i]>val) {
                     val = val - arrayKeys[i-1];
-                    console.log(val);
                     break;
+                }else if(arrayKeys[i] == val) {
+                    val = val - arrayKeys[i];
+                    break;
+                } else if(i == arrayKeys.length-1) {
+                    if(val > arrayKeys[i] && val < 2*(arrayKeys[i])) {
+                        val = val - arrayKeys[i];
+                        break;
+                    } else {
+                        return false;
+                    }
                 }
             }
         }
@@ -498,7 +527,38 @@ class MetadataV2 {
         this.matcherProtection = matcherProtection
     }
     public validateMatcherProtection(): boolean {
-        return this.matcherProtection in matcher;
+        let val = this.matcherProtection;
+        const keys = Object.values(matcher);
+
+        const arrayKeys: number[] = [];
+        keys.forEach((value) => {
+            if(!(isNaN(Number(value)))) {
+                arrayKeys.push(Number(value));
+            }
+        })
+        
+        while(val != 0) {
+            for(let i = 0; i<arrayKeys.length; i++) {
+                if(arrayKeys[i]>val) {
+                    val = val - arrayKeys[i-1];
+                    break;
+                }else if(arrayKeys[i] == val) {
+                    val = val - arrayKeys[i];
+                    break;
+                } else if(i == arrayKeys.length-1) {
+                    if(val > arrayKeys[i] && val < 2*(arrayKeys[i])) {
+                        val = val - arrayKeys[i];
+                        break;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+        if(val == 0) {
+            return true;
+        }
+        return false;
     }
 
     private cryptoStrength?: number;
@@ -546,9 +606,38 @@ class MetadataV2 {
         this.attachmentHint = attachmentHint;
     }
     public validateAttachmentHint(): boolean {
-        const validHint = [1,2,4,8,16,32,64,128,256];
+        let val = this.attachmentHint;
+        const keys = Object.values(attachmentHintType);
+
+        const arrayKeys: number[] = [];
+        keys.forEach((value) => {
+            if(!(isNaN(Number(value)))) {
+                arrayKeys.push(Number(value));
+            }
+        })
         
-        return validHint.includes(this.attachmentHint);
+        while(val != 0) {
+            for(let i = 0; i<arrayKeys.length; i++) {
+                if(arrayKeys[i]>val) {
+                    val = val - arrayKeys[i-1];
+                    break;
+                }else if(arrayKeys[i] == val) {
+                    val = val - arrayKeys[i];
+                    break;
+                } else if(i == arrayKeys.length-1) {
+                    if(val > arrayKeys[i] && val < 2*(arrayKeys[i])) {
+                        val = val - arrayKeys[i];
+                        break;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+        if(val == 0) {
+            return true;
+        }
+        return false;
     }
 
     //controllare se si può inizializzare meglio
@@ -571,9 +660,38 @@ class MetadataV2 {
         this.tcDisplay = tcDisplay;
     }
     public validateTcDisplay(): boolean {
-        const validTcDisplay = [0,1,2,4,8,16];
+        let val = this.tcDisplay;
+        const keys = Object.values(tcDisplayType);
+
+        const arrayKeys: number[] = [];
+        keys.forEach((value) => {
+            if(!(isNaN(Number(value)))) {
+                arrayKeys.push(Number(value));
+            }
+        })
         
-        return validTcDisplay.includes(this.tcDisplay);
+        while(val != 0) {
+            for(let i = 0; i<arrayKeys.length; i++) {
+                if(arrayKeys[i]>val) {
+                    val = val - arrayKeys[i-1];
+                    break;
+                }else if(arrayKeys[i] == val) {
+                    val = val - arrayKeys[i];
+                    break;
+                } else if(i == arrayKeys.length-1) {
+                    if(val > arrayKeys[i] && val < 2*(arrayKeys[i])) {
+                        val = val - arrayKeys[i];
+                        break;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+        if(val == 0) {
+            return true;
+        }
+        return false;
     }
 
     private tcDisplayContentType?: string;
@@ -605,9 +723,11 @@ class MetadataV2 {
     public validateTcDisplayPNGCharacteristics(): boolean {
         if(this.getTcDisplay() != 0 && this.getTcDisplayContentType() == 'image/png') {
             if(this.tcDisplayPNGCharacteristics == undefined) {
+                console.log('000')
                 return false; 
             } else {
                 const isValidEntry = (entry: tcDisplayPNGCharacteristicsType) => {
+                    console.log('001')
                     return (
                       typeof entry.width === 'number' &&
                       typeof entry.height === 'number' &&
@@ -619,10 +739,12 @@ class MetadataV2 {
                       (entry.plte === undefined || (Array.isArray(entry.plte) && entry.plte.length))
                     );
                   };
-                
+                  console.log('002')
                   return this.tcDisplayPNGCharacteristics.every(isValidEntry);
             }
 
+        } else if(this.tcDisplayPNGCharacteristics == undefined) {
+            return true;
         } else {
             return false;
         }
@@ -634,33 +756,30 @@ class MetadataV2 {
     }
     public setAttestationRootCertificates(attestationRootCertificates: string[]) {
         this.attestationRootCertificates = attestationRootCertificates;
-    }
-    public isValidBase64(input: string): boolean {
-        try {
-          return Buffer.from(input, 'base64').toString('base64') === input;
-        } catch (error) {
-          return false;
-        }
-      }
-      
+    } 
     public validateAttestationRootCertificates(): boolean {
-        const { X509Certificate } = require('node:crypto');
 
-        const isValidCertificate = (certificate: string) => {
-            let validValue = new Buffer(certificate);
-            const x509 = new X509Certificate(Buffer);
-          // Validate if the element is a valid base64-encoded DER-encoded PKIX certificate
-          return this.isValidBase64(certificate);
-        };
+        if(this.attestationRootCertificates.length == 0 || this.attestationRootCertificates === undefined) {
+            return false;
+        } 
+
+        const { X509Certificate } = require('node:crypto');
+        
+        for (const certificate of this.attestationRootCertificates) {
+            if (typeof certificate !== 'string') {
+              return false;
+            }
       
-        // Check if each element in attestationRootCertificates is a valid certificate
-        if (!this.attestationRootCertificates.every(isValidCertificate)) {
-          return false;
+            try {
+              const certBuffer = Buffer.from(certificate, 'base64');
+              const x509Cert = new X509Certificate(certBuffer);
+            } catch (error) {
+              return false;
+            }
         }
         return true;
     }
       
-
     private ecdaaTrustAnchors?: ecdaaTrustAnchorsType[];
     public getEcdaaTrustAnchors(): ecdaaTrustAnchorsType[] | undefined {
         return this.ecdaaTrustAnchors;
@@ -707,35 +826,12 @@ class MetadataV2 {
         if (!this.icon || this.icon.trim() === '') {
             return true;
         }
+        // Regular expression to match a data URL-encoded PNG image
+        const dataUrlRegex = /^data:image\/png;base64,([A-Za-z0-9+/=]+)/;
 
-        // Check if the icon is a valid base64 string
-        const base64Regex = /^[A-Za-z0-9+/]+={0,2}$/;
-        if (!base64Regex.test(this.icon)) {
-            return false;
-        }
+        const match = this.icon.match(dataUrlRegex);
 
-            // Helper function to check if a character is a valid base64 character
-        const isValidBase64Char = (char: string): boolean => {
-            return /^[A-Za-z0-9+/]$/.test(char) || char === '=';
-        };
-
-        // Decode the base64 string and check if it is a valid PNG image
-        const decodedIcon = this.icon.replace(/=/g, ''); // Remove padding characters ('=')
-        let paddingCount = 0;
-        for (let i = 0; i < decodedIcon.length; i++) {
-            const char = decodedIcon[i];
-            if (!isValidBase64Char(char)) {
-                return false;
-            }
-            if (char === '=') {
-                paddingCount++;
-            }
-        }
-        // Check if the base64 string length is a multiple of 4 (with or without padding characters)
-        if ((decodedIcon.length + paddingCount) % 4 !== 0) {
-            return false;
-        }
-        return true;
+        return !!match; // If match is truthy, the icon is a valid data URL-encoded PNG image
     }
 
     private supportedExtensions?: supportedExtensionsType[];

@@ -73,7 +73,62 @@ export function validateMetadata(metadata: MetadataV2) {
     validationErrors.push('keyProtection is invalid');
   }
   
+  if(!metadata.validateIsKeyRestricted()) {
+    validationErrors.push('isKeyRestricted is invalid');
+  }
+
+  if(!metadata.validateIsFreshUserVerificationRequired()) {
+    validationErrors.push('isFreshUserVerificationRequired is invalid');
+  }
   
+  if(!metadata.validateMatcherProtection()) {
+    validationErrors.push('matcherProtection is invalid');
+  }
+
+  if(!metadata.validateCryptoStrength()) {
+    validationErrors.push('cryptoStrength is invalid');
+  }
+
+  if(!metadata.validateOperatingEnv()) {
+    validationErrors.push('operatingEnv is invalid');
+  }
+
+  if(!metadata.validateAttachmentHint()) {
+    validationErrors.push('attachmentHint is invalid');
+  }
+
+  if(!metadata.validateIsSecondFactorOnly()) {
+    validationErrors.push('isSecondFactorOnly is invalid');
+  }
+
+  if(!metadata.validateTcDisplay()) {
+    validationErrors.push('tcDisplay is invalid');
+  }
+
+  if(!metadata.validateTcDisplayContentType()) {
+    validationErrors.push('tcDisplayContentType is invalid');
+  }
+
+  if(!metadata.validateTcDisplayPNGCharacteristics()) {
+    validationErrors.push('tcDisplayPNGCharacteristics is invalid');
+  }
+
+  if(!metadata.validateAttestationRootCertificates()) {
+    validationErrors.push('attestationRootCertificates is invalid');
+  }
+
+  if(!metadata.validateEcdaaTrustAnchors()) {
+    validationErrors.push('ecdaaTrustAnchors is invalid');
+  }
+
+  if(!metadata.validateIcon()) {
+    validationErrors.push('icon is invalid');
+  }
+
+  if(!metadata.validateSupportedExtensions()) {
+    validationErrors.push('supportedExtensions is invalid');
+  }
+
   console.log(validationErrors)
 }
 
