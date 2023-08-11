@@ -51,7 +51,7 @@ type paDescType = {
 }
 
 type userVerificationDetailsType = {
-    userVerification: number;
+    userVerificationMethod: number;
     caDesc?: caDescType;
     baDesc?: baDescType;
     paDesc?: paDescType;
@@ -72,6 +72,23 @@ type supportedExtensionsType = {
     data?: string;
     fail_if_unknown: boolean;
 };
+
+type option = {
+    plat: boolean;
+    rk: boolean;
+    clientPin: boolean;
+    up: boolean;
+    uv: boolean;
+}
+
+type AuthenticatorGetInfo = {
+    versions: string[];
+    extensions?: string[];
+    aaguid: string;
+    options?: option;
+    maxMsgSize?: number;
+    pinProtocols?: number[]
+}
 
 enum authAlgorithm {
     'secp256r1_ecdsa_sha256_raw' = 1,
@@ -259,7 +276,7 @@ class MetadataV3 {
         }
     }
 
-    private description: string = "";
+    private description: string;
     public getDescription(): string {
         return this.description;
     }
@@ -295,7 +312,7 @@ class MetadataV3 {
     }
       
 
-    private authenticatorVersion: number = 0;
+    private authenticatorVersion: number;
     public getAuthenticatorVersion() : number {
         return this.authenticatorVersion;
     }
@@ -308,7 +325,7 @@ class MetadataV3 {
         return Number.isInteger(this.authenticatorVersion) && this.authenticatorVersion >= 0 && this.authenticatorVersion <= 65535;
     }  
 
-    private protocolFamily: string = '';
+    private protocolFamily: string;
     public getProtocolFamily(): string | undefined {
         return this.protocolFamily;
     }
@@ -323,7 +340,7 @@ class MetadataV3 {
         return validValues.includes(this.protocolFamily);
     }
 
-    private schema: number = 3;
+    private schema: number;
     public getSchema(): number {
         return this.schema;
     }
@@ -331,11 +348,12 @@ class MetadataV3 {
         this.schema = schema;
     }
     public validateSchema(): boolean {
+        if(this.schema === undefined) { return false; }
         return this.schema == 3 ? true : false;
     }
 
     //campo dati marcato come readonly, non ha quindi senso mettere un setter
-    private upv: upvType[] = [];
+    private upv: upvType[];
     public getUpv(): upvType[] {
         return this.upv;
     }
@@ -352,7 +370,7 @@ class MetadataV3 {
         return true;
     }
 
-    private authenticationAlgorithms: string[] = [];
+    private authenticationAlgorithms: string[];
     public getAuthenticationAlgorithms(): string[] | undefined {
         return this.authenticationAlgorithms;
     }
@@ -370,7 +388,7 @@ class MetadataV3 {
         return true;
     }
 
-    private publicKeyAlgAndEncodings: string[] = [];
+    private publicKeyAlgAndEncodings: string[];
     public getPublicKeyAlgAndEncodings(): string[] {
         return this.publicKeyAlgAndEncodings;
     }
@@ -388,7 +406,7 @@ class MetadataV3 {
         return true;
     }
 
-    private attestationTypes: string[] = [];
+    private attestationTypes: string[];
     public getAttestationTypes(): string[] {
         return this.attestationTypes;
     }
@@ -407,7 +425,7 @@ class MetadataV3 {
     }
 
     // userVerificationDetails
-    private userVerificationDetails:  userVerificationDetailsType[][] = [[]];
+    private userVerificationDetails:  userVerificationDetailsType[][];
     public getUserVerificationDetails(): userVerificationDetailsType[][] {
         return this.userVerificationDetails;
     }
@@ -420,7 +438,7 @@ class MetadataV3 {
         const validUserVerificationValues = [1,2,4,8,16,32,64,128,256,512,1024];
 
         this.userVerificationDetails.forEach((value) => {
-            if(!(value[0].userVerification in userVerificationValues)) {
+            if(!(value[0].userVerificationMethod in userVerificationValues)) {
                 return false;
             }
         })
@@ -428,7 +446,7 @@ class MetadataV3 {
         return true;
     }
 
-    private keyProtection: string[] = [];
+    private keyProtection: string[];
     public getKeyProtection(): string[] {
         return this.keyProtection;
     }
@@ -439,7 +457,6 @@ class MetadataV3 {
         if(this.keyProtection.length == 0 || this.keyProtection === undefined) { return false; }
     
         this.keyProtection.forEach((value) => {
-            console.log(value)
             if(!(value in KProtection)) {
                 return false;
             }
@@ -447,7 +464,7 @@ class MetadataV3 {
         return true;
     } 
 
-    private isKeyRestricted: boolean = true;
+    private isKeyRestricted?: boolean;
     public getIsKeyRestricted(): boolean | undefined {
         return this.isKeyRestricted;
     }
@@ -455,6 +472,7 @@ class MetadataV3 {
         this.isKeyRestricted = isKeyRestricted;
     }
     public validateIsKeyRestricted(): boolean {
+        if(this.isKeyRestricted === undefined) { return true; }
         return typeof this.isKeyRestricted === 'boolean';
     }
 
@@ -466,10 +484,10 @@ class MetadataV3 {
         this.isFreshUserVerificationRequired = isFreshUserVerificationRequired;
     }
     public validateIsFreshUserVerificationRequired(): boolean {
-        return typeof this.isFreshUserVerificationRequired === 'undefined' || typeof this.isFreshUserVerificationRequired === 'boolean';
+        return this.isFreshUserVerificationRequired === undefined || typeof this.isFreshUserVerificationRequired === 'boolean';
     }
 
-    private matcherProtection: string = '';
+    private matcherProtection: string;
     public getMatcherProtection(): string {
         return this.matcherProtection;
     }
@@ -493,92 +511,70 @@ class MetadataV3 {
         return Number.isInteger(this.cryptoStrength) && this.cryptoStrength > 0;
     }
 
-    private operatingEnv?: string;
-    public getOperatingEnv(): string | undefined {
-        return this.operatingEnv;
-    }
-    public setOperatingEnv(operatingEnv: string) {
-        this.operatingEnv = operatingEnv;
-    }
-    public validateOperatingEnv(): boolean{
-        if(!this.operatingEnv) { return true; }
-        const validOperatingEnv = [
-            'TEEs based on ARM TrustZone HW',
-            'TEE Based on Intel VT HW',
-            'TEE Based on Intel SGX HW',
-            'TEE Based on Intel ME/TXE HW',
-            'TEE with GlobalPlatform TEE Protection Profile Certification',
-            'Windows 10 Virtualization-based Security.',
-            'Secure World of AMD PSP (Platform Security coProcessor).',
-            'Trusted Platform Modules (TPMs) Complying to Trusted Computing Group specifications.',
-            'Secure Element (SE)'
-        ]
-
-        return validOperatingEnv.includes(this.operatingEnv);
-    }
-
-    private attachmentHint: string = '';
-    public getAttachmentHint(): string {
+    //capire se è required o no
+    //controllare MDS2
+    private attachmentHint: string[];
+    public getAttachmentHint(): string[] {
         return this.attachmentHint;
     }
-    public setAttachmentHint(attachmentHint: string) {
+    public setAttachmentHint(attachmentHint: string[]) {
         this.attachmentHint = attachmentHint;
     }
     public validateAttachmentHint(): boolean {
-        return this.attachmentHint in attachmentHintValues;
+        if(this.attachmentHint.length == 0) {return false;}
+
+        this.attachmentHint.forEach((value) => {
+            if(!(value in attachmentHintValues)) {
+                return false;
+            }
+        })
+        return true;
     }
 
-    //controllare se si può inizializzare meglio
-    private isSecondFactorOnly: boolean = false;
-    public getIsSecondFactorOnly(): boolean {
-        return this.isSecondFactorOnly;
-    }
-    public setIsSecondFactorOnly(isSecondFactorOnly: boolean) {
-        this.isSecondFactorOnly = isSecondFactorOnly;
-    }
-    public validateIsSecondFactorOnly(): boolean {
-        return typeof this.isSecondFactorOnly === 'boolean';
-    }
-
-    private tcDisplay?: string[];
-    public getTcDisplay(): string[] | undefined {
+    private tcDisplay: string[];
+    public getTcDisplay(): string[] {
         return this.tcDisplay;
     }
     public setTcDisplay(tcDisplay: string[]) {
         this.tcDisplay = tcDisplay;
     }
     public validateTcDisplay(): boolean {
-        if(!this.tcDisplay) { return true; }
-
-        for(const element in this.tcDisplay) {
-            if(!(element in tcDisplayValues)) {
+        if(this.tcDisplay === undefined) { return false; }
+    
+        this.tcDisplay.forEach((value) => {
+            if(!(value in tcDisplayValues)) {
                 return false;
             }
-        }
+        })
         return true;
     }
 
-    private tcDisplayContentType?: string[];
-    public getTcDisplayContentType(): string[] | undefined {
+    private tcDisplayContentType?: string;
+    public getTcDisplayContentType(): string | undefined {
         return this.tcDisplayContentType;
     }
-    public setTcDisplayContentType(tcDisplayContentType: string[]) {
+    public setTcDisplayContentType(tcDisplayContentType: string) {
         this.tcDisplayContentType = tcDisplayContentType;
     }
     public validateTcDisplayContentType(): boolean {
-        if(this.getTcDisplay() != undefined && this.getTcDisplay()?.length != 0 && this.validateTcDisplay()) {
-            if(this.tcDisplayContentType && this.tcDisplayContentType.length != 0) {
-                const allowedContentTypes = ['image/png', 'text/plain'];
+        let status: Boolean = true;
 
-                for(const element in this.tcDisplayContentType) {
-                    if(!(allowedContentTypes.includes(element))) {
-                        return false;
-                    }
+        if(this.getTcDisplay().length == 0) {
+            status = false;
+        } else {
+            this.getTcDisplay().forEach((value) => {
+                if(value == '') {
+                    status = false;
                 }
-                return true
-            } else {
-                return false;
-            }
+            });
+        }
+
+        const allowedContentTypes = ['image/png', 'text/plain'];
+
+        if(status && this.tcDisplayContentType !== undefined && this.tcDisplayContentType != '') {
+            return allowedContentTypes.includes(this.tcDisplayContentType);
+        } else if(!status && (this.tcDisplayContentType === undefined || this.tcDisplayContentType == '')){
+            return true;
         }
         return false;
     }
@@ -591,32 +587,43 @@ class MetadataV3 {
         this.tcDisplayPNGCharacteristics = tcDisplayPNGCharacteristics;
     }
     public validateTcDisplayPNGCharacteristics(): boolean {
-        if(this.getTcDisplay() != undefined && this.getTcDisplay.length != 0 && this.getTcDisplayContentType()?.includes('image/png')) {
-            if(this.tcDisplayPNGCharacteristics == undefined) {
-                return false; 
-            } else {
-                const isValidEntry = (entry: tcDisplayPNGCharacteristicsType) => {
-                    return (
-                      typeof entry.width === 'number' &&
-                      typeof entry.height === 'number' &&
-                      typeof entry.bitDepth === 'number' &&
-                      typeof entry.colorType === 'number' &&
-                      typeof entry.compression === 'number' &&
-                      typeof entry.filter === 'number' &&
-                      typeof entry.interlace === 'number' &&
-                      (entry.plte === undefined || (Array.isArray(entry.plte) && entry.plte.length))
-                    );
-                  };
-                
-                return this.tcDisplayPNGCharacteristics.every(isValidEntry);
-            }
+        let status: Boolean = true;
 
+        if(this.getTcDisplay().length == 0) {
+            status = false;
         } else {
-            return false;
+            this.getTcDisplay().forEach((value) => {
+                if(value == '') {
+                    status = false;
+                }
+            });
         }
+        if(status && this.getTcDisplayContentType() != 'image/png') {
+            status = false;
+        }
+
+        if(status && this.tcDisplayPNGCharacteristics !== undefined && this.tcDisplayPNGCharacteristics.length != 0) {
+            
+            const isValidEntry = (entry: tcDisplayPNGCharacteristicsType) => {
+                return (
+                    typeof entry.width === 'number' &&
+                    typeof entry.height === 'number' &&
+                    typeof entry.bitDepth === 'number' &&
+                    typeof entry.colorType === 'number' &&
+                    typeof entry.compression === 'number' &&
+                    typeof entry.filter === 'number' &&
+                    typeof entry.interlace === 'number' &&
+                    (entry.plte === undefined || (Array.isArray(entry.plte) && entry.plte.length))
+                );
+            };    
+            return this.tcDisplayPNGCharacteristics.every(isValidEntry);
+        } else if(!status && (this.tcDisplayPNGCharacteristics === undefined || this.tcDisplayPNGCharacteristics.length == 0)) {
+                return true;
+            }
+        return false;
     }
 
-    private attestationRootCertificates: string[] = [];
+    private attestationRootCertificates: string[];
     public getAttestationRootCertificates(): string[] {
         return this.attestationRootCertificates;
     }
@@ -646,7 +653,6 @@ class MetadataV3 {
         return true;
     }
       
-
     private ecdaaTrustAnchors?: ecdaaTrustAnchorsType[];
     public getEcdaaTrustAnchors(): ecdaaTrustAnchorsType[] | undefined {
         return this.ecdaaTrustAnchors;
@@ -694,35 +700,12 @@ class MetadataV3 {
         if (!this.icon || this.icon.trim() === '') {
             return true;
         }
+        // Regular expression to match a data URL-encoded PNG image
+        const dataUrlRegex = /^data:image\/png;base64,([A-Za-z0-9+/=]+)/;
 
-        // Check if the icon is a valid base64 string
-        const base64Regex = /^[A-Za-z0-9+/]+={0,2}$/;
-        if (!base64Regex.test(this.icon)) {
-            return false;
-        }
+        const match = this.icon.match(dataUrlRegex);
 
-            // Helper function to check if a character is a valid base64 character
-        const isValidBase64Char = (char: string): boolean => {
-            return /^[A-Za-z0-9+/]$/.test(char) || char === '=';
-        };
-
-        // Decode the base64 string and check if it is a valid PNG image
-        const decodedIcon = this.icon.replace(/=/g, ''); // Remove padding characters ('=')
-        let paddingCount = 0;
-        for (let i = 0; i < decodedIcon.length; i++) {
-            const char = decodedIcon[i];
-            if (!isValidBase64Char(char)) {
-                return false;
-            }
-            if (char === '=') {
-                paddingCount++;
-            }
-        }
-        // Check if the base64 string length is a multiple of 4 (with or without padding characters)
-        if ((decodedIcon.length + paddingCount) % 4 !== 0) {
-            return false;
-        }
-        return true;
+        return !!match; // If match is truthy, the icon is a valid data URL-encoded PNG image
     }
 
     private supportedExtensions?: supportedExtensionsType[];
@@ -735,7 +718,7 @@ class MetadataV3 {
     public validateSupportedExtensions(): boolean {
         if(this.supportedExtensions !== undefined) {
             for(const extension of this.supportedExtensions) {
-                if(!extension.id || !extension.fail_if_unknown) {
+                if(!extension.id || extension.fail_if_unknown === undefined) {
                     return false;
                 }
             }
@@ -743,6 +726,44 @@ class MetadataV3 {
         }
         return true;
     }
+
+    private authenticatorGetInfo?: AuthenticatorGetInfo;
+    public getAuthenticatorGetInfo(): AuthenticatorGetInfo | undefined {
+        return this.authenticatorGetInfo;
+    }
+    public setAuthenticatorGetInfo(authenticatorGetInfo: AuthenticatorGetInfo) {
+        this.authenticatorGetInfo = authenticatorGetInfo;
+    }
+    public validateAuthenticatorGetInfo(): boolean {
+        if(this.authenticatorGetInfo === undefined) {
+            if((this.getProtocolFamily() == 'uaf' || this.getProtocolFamily() == 'u2f')) {
+                return true;
+            }
+        } else {
+            if(this.authenticatorGetInfo.versions === undefined || this.authenticatorGetInfo.versions.length == 0) {
+                return false;
+            }
+            const versionsValues = ['U2F_V2', 'FIDO_2_0'];
+
+            this.authenticatorGetInfo.versions.forEach((value) => {
+                if(!(versionsValues.includes(value))) {
+                    return false;
+                }
+            })
+
+            if(this.authenticatorGetInfo.aaguid === undefined || this.authenticatorGetInfo.aaguid == '') {
+                return false;
+            }
+
+            if(!(/^[0-9a-f]{32}$/i.test(this.authenticatorGetInfo.aaguid))) {
+                return false;
+            }
+        }
+        //se non vogliamo eseguire altri test, possiamo direttamente fare il return del risultato del test con la RegEx
+        return true;
+    }
+
+
 }
 
 export { MetadataV3 };

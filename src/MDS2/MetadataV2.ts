@@ -275,7 +275,7 @@ class MetadataV2 {
         }
     }
 
-    private description: string = "";
+    private description: string;
     public getDescription(): string {
         return this.description;
     }
@@ -311,7 +311,7 @@ class MetadataV2 {
     }
       
 
-    private authenticatorVersion: number = 0;
+    private authenticatorVersion: number;
     public getAuthenticatorVersion() : number {
         return this.authenticatorVersion;
     }
@@ -342,7 +342,7 @@ class MetadataV2 {
     }
 
     //campo dati marcato come readonly, non ha quindi senso mettere un setter
-    private upv: upvType[] = [];
+    private upv: upvType[];
     public getUpv(): upvType[] {
         return this.upv;
     }
@@ -359,7 +359,7 @@ class MetadataV2 {
         return true;
     }
 
-    private assertionScheme: string = "";
+    private assertionScheme: string;
     public getAssertionScheme(): string {
         return this.assertionScheme;
     }
@@ -372,7 +372,7 @@ class MetadataV2 {
         return validValues.includes(this.assertionScheme);
     }
 
-    private authenticationAlgorithm: number = 0;
+    private authenticationAlgorithm: number;
     public getAuthenticationAlgorithm(): number {
         return this.authenticationAlgorithm;
     }
@@ -401,7 +401,7 @@ class MetadataV2 {
         return true;
     }
 
-    private publicKeyAlgAndEncoding: number = 0;
+    private publicKeyAlgAndEncoding: number;
     public getPublicKeyAlgAndEncoding(): number {
         return this.publicKeyAlgAndEncoding;
     }
@@ -430,7 +430,7 @@ class MetadataV2 {
         return true;
     }
 
-    private attestationTypes: number[] = [];
+    private attestationTypes: number[];
     public getAttestationTypes(): number [] {
         return this.attestationTypes;
     }
@@ -451,7 +451,7 @@ class MetadataV2 {
     }
 
     // userVerificationDetails
-    private userVerificationDetails:  userVerificationDetailsType[][] = [[]];
+    private userVerificationDetails:  userVerificationDetailsType[][];
     public getUserVerificationDetails(): userVerificationDetailsType[][] {
         return this.userVerificationDetails;
     }
@@ -469,7 +469,7 @@ class MetadataV2 {
         return true;
     }
 
-    private keyProtection: number = 0;
+    private keyProtection: number;
     public getKeyProtection(): number {
         return this.keyProtection;
     }
@@ -511,7 +511,7 @@ class MetadataV2 {
         return false;
     } 
 
-    private isKeyRestricted: boolean = true;
+    private isKeyRestricted?: boolean;
     public getIsKeyRestricted(): boolean | undefined {
         return this.isKeyRestricted;
     }
@@ -519,6 +519,7 @@ class MetadataV2 {
         this.isKeyRestricted = isKeyRestricted;
     }
     public validateIsKeyRestricted(): boolean {
+        if(this.isKeyRestricted === undefined) { return true; }
         return typeof this.isKeyRestricted === 'boolean';
     }
 
@@ -533,7 +534,7 @@ class MetadataV2 {
         return typeof this.isFreshUserVerificationRequired === 'undefined' || typeof this.isFreshUserVerificationRequired === 'boolean';
     }
 
-    private matcherProtection: number = 0;
+    private matcherProtection: number;
     public getMatcherProtection(): number {
         return this.matcherProtection;
     }
@@ -612,7 +613,7 @@ class MetadataV2 {
         return validOperatingEnv.includes(this.operatingEnv);
     }
 
-    private attachmentHint: number = 0;
+    private attachmentHint: number;
     public getAttachmentHint(): number {
         return this.attachmentHint;
     }
@@ -655,7 +656,7 @@ class MetadataV2 {
     }
 
     //controllare se si può inizializzare meglio
-    private isSecondFactorOnly: boolean = false;
+    private isSecondFactorOnly: boolean;
     public getIsSecondFactorOnly(): boolean {
         return this.isSecondFactorOnly;
     }
@@ -666,7 +667,7 @@ class MetadataV2 {
         return typeof this.isSecondFactorOnly === 'boolean';
     }
 
-    private tcDisplay: number = 0;
+    private tcDisplay: number;
     public getTcDisplay(): number {
         return this.tcDisplay;
     }
@@ -764,7 +765,7 @@ class MetadataV2 {
         }
     }
 
-    private attestationRootCertificates: string[] = [];
+    private attestationRootCertificates: string[];
     public getAttestationRootCertificates(): string[] {
         return this.attestationRootCertificates;
     }

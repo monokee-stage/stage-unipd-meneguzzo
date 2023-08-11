@@ -37,25 +37,17 @@ export function validateMetadataV3(metadata: MetadataV3) {
     validationErrors.push('protocolFamily is invalid');
   }
 
+  if(!metadata.validateSchema()) {
+    validationErrors.push('schema is invalid');
+  }
+
   if(!metadata.validateUpv()) {
     validationErrors.push('upv is invalid');
   }
 
-//   if(!metadata.validateAssertionScheme()) {
-//     validationErrors.push('assertionScheme is invalid');
-//   }
-
-//   if(!metadata.validateAuthenticationAlgorithm()) {
-//     validationErrors.push('authenticationAlgorithm is invalid');
-//   }
-
   if(!metadata.validateAuthenticationAlgorithms()) {
     validationErrors.push('authenticationAlgorithms is invalid');
   }
-
-//   if(!metadata.validatePublicKeyAlgAndEncoding()) {
-//     validationErrors.push('publicKeyAlgAndEncoding is invalid');
-//   }
 
   if(!metadata.validatePublicKeyAlgAndEncodings()) {
     validationErrors.push('publicKeyAlgAndEncodings is invalid');
@@ -89,16 +81,8 @@ export function validateMetadataV3(metadata: MetadataV3) {
     validationErrors.push('cryptoStrength is invalid');
   }
 
-  if(!metadata.validateOperatingEnv()) {
-    validationErrors.push('operatingEnv is invalid');
-  }
-
   if(!metadata.validateAttachmentHint()) {
     validationErrors.push('attachmentHint is invalid');
-  }
-
-  if(!metadata.validateIsSecondFactorOnly()) {
-    validationErrors.push('isSecondFactorOnly is invalid');
   }
 
   if(!metadata.validateTcDisplay()) {
@@ -127,6 +111,10 @@ export function validateMetadataV3(metadata: MetadataV3) {
 
   if(!metadata.validateSupportedExtensions()) {
     validationErrors.push('supportedExtensions is invalid');
+  }
+
+  if(!metadata.validateAuthenticatorGetInfo()) {
+    validationErrors.push('authenticatorGetInfo is invalid');
   }
 
   console.log('error messages validation MetadataV3:', validationErrors)
