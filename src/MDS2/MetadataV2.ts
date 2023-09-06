@@ -1,3 +1,5 @@
+import { MetadataV3 } from "../MDS3/MetadataV3";
+
 
 type AAID = string;
 
@@ -738,11 +740,9 @@ class MetadataV2 {
     public validateTcDisplayPNGCharacteristics(): boolean {
         if(this.getTcDisplay() != 0 && this.getTcDisplayContentType() == 'image/png') {
             if(this.tcDisplayPNGCharacteristics == undefined) {
-                console.log('000')
                 return false; 
             } else {
                 const isValidEntry = (entry: tcDisplayPNGCharacteristicsType) => {
-                    console.log('001')
                     return (
                       typeof entry.width === 'number' &&
                       typeof entry.height === 'number' &&
@@ -754,7 +754,6 @@ class MetadataV2 {
                       (entry.plte === undefined || (Array.isArray(entry.plte) && entry.plte.length))
                     );
                   };
-                  console.log('002')
                   return this.tcDisplayPNGCharacteristics.every(isValidEntry);
             }
 

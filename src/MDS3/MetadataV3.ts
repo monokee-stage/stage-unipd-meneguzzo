@@ -1,3 +1,5 @@
+import { MetadataV2 } from "../MDS2/MetadataV2";
+
 
 type AAID = string;
 
@@ -186,6 +188,282 @@ class MetadataV3 {
         return result;
     }
 
+    public static ConverterFromV2toV3(metadataV2: MetadataV2): MetadataV3 {
+        let metadataV3 = new MetadataV3();
+
+        if(metadataV2.getLegalHeader() !== undefined) {
+            metadataV3.setLegalHeader(metadataV2.getLegalHeader()!)
+        }
+
+        if(metadataV2.getAAID() !== undefined) {
+            metadataV3.setLegalHeader(metadataV2.getAAID()!)
+        }
+
+        if(metadataV2.getAAGUID() !== undefined) {
+            metadataV3.setAAGUID(metadataV2.getAAGUID()!)
+        }
+
+        if(metadataV2.getAttestationCertificateKeyIdentifiers() !== undefined) {
+            metadataV3.setAttestationCertificateKeyIdentifiers(metadataV2.getAttestationCertificateKeyIdentifiers()!)
+        }
+
+        if(metadataV2.getDescription() !== undefined) {
+            metadataV3.setDescription(metadataV2.getDescription()!)
+        }
+
+        if(metadataV2.getAlternativeDescriptions() !== undefined) {
+            metadataV3.setAlternativeDescriptions(metadataV2.getAlternativeDescriptions()!)
+        }
+
+        if(metadataV2.getAuthenticatorVersion() !== undefined) {
+            metadataV3.setAuthenticatorVersion(metadataV2.getAuthenticatorVersion()!)
+        }
+
+        if(metadataV2.getProtocolFamily() === undefined) {
+            switch(metadataV2.getAssertionScheme()) {
+                case 'UAFV1TLV': {
+                    metadataV3.setProtocolFamily('uaf');
+                    break;
+                }
+                case 'U2FV1BIN': {
+                    metadataV3.setProtocolFamily('u2f');
+                    break;
+                }
+                case 'FIDOV2': {
+                    metadataV3.setProtocolFamily('fido2');
+                    break;
+                }
+            }
+        } else {
+            metadataV3.setProtocolFamily(metadataV2.getProtocolFamily()!)
+        }
+
+        metadataV3.setSchema(3);
+
+        // if(metadataV2.getUpv() !== undefined) {
+        //     metadataV3.setupv(metadataV2.getAuthenticatorVersion()!)
+        // }
+
+        let auxAuthenticationAlgorithms: string[] = [];
+        if(metadataV2.getAuthenticationAlgorithm() !== undefined) {
+            auxAuthenticationAlgorithms.push(authAlgorithm[metadataV2.getAuthenticationAlgorithm()]);
+        }
+        if(metadataV2.getAuthenticationAlgorithms() !== undefined) {
+            for(const ele in metadataV2.getAuthenticationAlgorithms()) {
+                auxAuthenticationAlgorithms.push(authAlgorithm[ele]);
+            }
+        }
+        metadataV3.setAuthenticationAlgorithms(auxAuthenticationAlgorithms);
+
+        let auxPublicKeyAlgAndEncoding: string[] = [];
+        if(metadataV2.getPublicKeyAlgAndEncoding() !== undefined) {
+            auxPublicKeyAlgAndEncoding.push(PKAlgAndEncodings[metadataV2.getPublicKeyAlgAndEncoding()]);
+        }
+        if(metadataV2.getPublicKeyAlgAndEncodings() !== undefined) {
+            for(const ele in metadataV2.getPublicKeyAlgAndEncodings()) {
+                auxPublicKeyAlgAndEncoding.push(PKAlgAndEncodings[ele]);
+            }
+        }
+        metadataV3.setPublicKeyAlgAndEncodings(auxAuthenticationAlgorithms);
+
+        if(metadataV2.getAttestationTypes() !== undefined) {
+            let auxAttestationTypes: string[] = [];
+            for(const ele in metadataV2.getAttestationTypes()) {
+                auxAttestationTypes.push(attestations[ele]);
+            }
+            metadataV3.setAttestationTypes(auxAttestationTypes);
+        }
+
+        //userVerification
+
+        if(metadataV2.getKeyProtection() !== undefined) {
+            let val = metadataV2.getKeyProtection();
+            let auxKeyProtection: string[] = [];
+            const keys = Object.values(KProtection);
+
+            const arrayKeys: number[] = [];
+            keys.forEach((value) => {
+                if(!(isNaN(Number(value)))) {
+                    arrayKeys.push(Number(value));
+                }
+            });
+            
+            while(val != 0) {
+                for(let i = 0; i<arrayKeys.length; i++) {
+                    if(arrayKeys[i]>val) {
+                        val = val - arrayKeys[i-1];
+                        auxKeyProtection.push(KProtection[arrayKeys[i-1]]);
+                        break;
+                    }else if(arrayKeys[i] == val) {
+                        val = val - arrayKeys[i];
+                        auxKeyProtection.push(KProtection[arrayKeys[i]]);
+                        break;
+                    } else if(i == arrayKeys.length-1) {
+                        if(val > arrayKeys[i] && val < 2*(arrayKeys[i])) {
+                            val = val - arrayKeys[i];
+                            auxKeyProtection.push(KProtection[arrayKeys[i]]);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            metadataV3.setKeyProtection(auxKeyProtection);
+        }
+
+        if(metadataV2.getIsKeyRestricted() !== undefined) {
+            metadataV3.setIsKeyRestricted(metadataV2.getIsKeyRestricted()!);
+        }
+
+        if(metadataV2.getIsFreshUserVerificationRequired() !== undefined) {
+            metadataV3.setIsFreshUserVerificationRequired(metadataV2.getIsFreshUserVerificationRequired()!);
+        }
+
+        if(metadataV2.getMatcherProtection() !== undefined) {
+            let val = metadataV2.getMatcherProtection();
+            let auxMatcherProtection: string[] = [];
+            const keys = Object.values(matcher);
+
+            const arrayKeys: number[] = [];
+            keys.forEach((value) => {
+                if(!(isNaN(Number(value)))) {
+                    arrayKeys.push(Number(value));
+                }
+            });
+            
+            while(val != 0) {
+                for(let i = 0; i<arrayKeys.length; i++) {
+                    if(arrayKeys[i]>val) {
+                        val = val - arrayKeys[i-1];
+                        auxMatcherProtection.push(matcher[arrayKeys[i-1]]);
+                        break;
+                    }else if(arrayKeys[i] == val) {
+                        val = val - arrayKeys[i];
+                        auxMatcherProtection.push(matcher[arrayKeys[i]]);
+                        break;
+                    } else if(i == arrayKeys.length-1) {
+                        if(val > arrayKeys[i] && val < 2*(arrayKeys[i])) {
+                            val = val - arrayKeys[i];
+                            auxMatcherProtection.push(matcher[arrayKeys[i]]);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            metadataV3.setMatcherProtection(auxMatcherProtection);
+        }
+
+        if(metadataV2.getCryptoStrength() !== undefined) {
+            metadataV3.setCryptoStrength(metadataV2.getCryptoStrength()!);
+        }
+
+        if(metadataV2.getAttachmentHint() !== undefined) {
+            let val = metadataV2.getAttachmentHint();
+            let auxAttachmentHint: string[] = [];
+            const keys = Object.values(attachmentHintValues);
+
+            const arrayKeys: number[] = [];
+            keys.forEach((value) => {
+                if(!(isNaN(Number(value)))) {
+                    arrayKeys.push(Number(value));
+                }
+            });
+            
+            while(val != 0) {
+                for(let i = 0; i<arrayKeys.length; i++) {
+                    if(arrayKeys[i]>val) {
+                        val = val - arrayKeys[i-1];
+                        auxAttachmentHint.push(attachmentHintValues[arrayKeys[i-1]]);
+                        break;
+                    }else if(arrayKeys[i] == val) {
+                        val = val - arrayKeys[i];
+                        auxAttachmentHint.push(attachmentHintValues[arrayKeys[i]]);
+                        break;
+                    } else if(i == arrayKeys.length-1) {
+                        if(val > arrayKeys[i] && val < 2*(arrayKeys[i])) {
+                            val = val - arrayKeys[i];
+                            auxAttachmentHint.push(attachmentHintValues[arrayKeys[i]]);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            metadataV3.setAttachmentHint(auxAttachmentHint);
+        }
+
+        if(metadataV2.getTcDisplay() !== undefined) {
+            let val = metadataV2.getTcDisplay();
+            let auxTcDisplay: string[] = [];
+            const keys = Object.values(tcDisplayValues);
+
+            const arrayKeys: number[] = [];
+            keys.forEach((value) => {
+                if(!(isNaN(Number(value)))) {
+                    arrayKeys.push(Number(value));
+                }
+            });
+            
+            while(val != 0) {
+                for(let i = 0; i<arrayKeys.length; i++) {
+                    if(arrayKeys[i]>val) {
+                        val = val - arrayKeys[i-1];
+                        auxTcDisplay.push(tcDisplayValues[arrayKeys[i-1]]);
+                        break;
+                    }else if(arrayKeys[i] == val) {
+                        val = val - arrayKeys[i];
+                        auxTcDisplay.push(tcDisplayValues[arrayKeys[i]]);
+                        break;
+                    } else if(i == arrayKeys.length-1) {
+                        if(val > arrayKeys[i] && val < 2*(arrayKeys[i])) {
+                            val = val - arrayKeys[i];
+                            auxTcDisplay.push(tcDisplayValues[arrayKeys[i]]);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            metadataV3.setAttachmentHint(auxTcDisplay);
+        }
+
+        if(metadataV2.getTcDisplayContentType() !== undefined) {
+            metadataV3.setTcDisplayContentType(metadataV2.getTcDisplayContentType()!);
+        }
+
+        if(metadataV2.getTcDisplayPNGCharacteristics() !== undefined) {
+            metadataV3.setTcDisplayPNGCharacteristics(metadataV2.getTcDisplayPNGCharacteristics()!);
+        }
+
+        if(metadataV2.getAttestationRootCertificates() !== undefined) {
+            metadataV3.setAttestationRootCertificates(metadataV2.getAttestationRootCertificates());
+        }
+
+        if(metadataV2.getEcdaaTrustAnchors() !== undefined) {
+            metadataV3.setEcdaaTrustAnchors(metadataV2.getEcdaaTrustAnchors()!);
+        }
+
+        if(metadataV2.getIcon() !== undefined) {
+            metadataV3.setIcon(metadataV2.getIcon()!);
+        }
+
+        if(metadataV2.getSupportedExtensions() !== undefined) {
+            metadataV3.setSupportedExtensions(metadataV2.getSupportedExtensions()!);
+        }
+
+        if(metadataV2.getAssertionScheme() == 'FIDOV2') {
+            let aaguid:string = '';
+            let versions: string[] = [];
+            let auxAuthenticatorInfo: AuthenticatorGetInfo = {aaguid,versions};
+            auxAuthenticatorInfo.aaguid = metadataV2.getAAGUID()!;
+            // authenticatorInfo.versions = 
+            metadataV3.setAuthenticatorGetInfo(auxAuthenticatorInfo);
+        }
+
+        return metadataV3;
+    }
+
     private legalHeader?: string;
     public getLegalHeader() {
         return this.legalHeader;
@@ -371,7 +649,7 @@ class MetadataV3 {
     }
 
     private authenticationAlgorithms: string[];
-    public getAuthenticationAlgorithms(): string[] | undefined {
+    public getAuthenticationAlgorithms(): string[] {
         return this.authenticationAlgorithms;
     }
     public setAuthenticationAlgorithms(authenticationAlgorithms: string[]) {
@@ -435,8 +713,6 @@ class MetadataV3 {
     public validateUserVerificationDetails(): boolean {
         if(!this.userVerificationDetails) { return false; }
         
-        const validUserVerificationValues = [1,2,4,8,16,32,64,128,256,512,1024];
-
         this.userVerificationDetails.forEach((value) => {
             if(!(value[0].userVerificationMethod in userVerificationValues)) {
                 return false;
@@ -487,15 +763,22 @@ class MetadataV3 {
         return this.isFreshUserVerificationRequired === undefined || typeof this.isFreshUserVerificationRequired === 'boolean';
     }
 
-    private matcherProtection: string;
-    public getMatcherProtection(): string {
+    private matcherProtection: string[];
+    public getMatcherProtection(): string[] {
         return this.matcherProtection;
     }
-    public setMatcherProtection(matcherProtection: string) {
+    public setMatcherProtection(matcherProtection: string[]) {
         this.matcherProtection = matcherProtection
     }
     public validateMatcherProtection(): boolean {
-        return this.matcherProtection in matcher;
+        if(this.matcherProtection.length == 0 || this.matcherProtection === undefined) { return false; }
+    
+        this.matcherProtection.forEach((value) => {
+            if(!(value in matcher)) {
+                return false;
+            }
+        })
+        return true;
     }
 
     private cryptoStrength?: number;
@@ -630,7 +913,6 @@ class MetadataV3 {
     public setAttestationRootCertificates(attestationRootCertificates: string[]) {
         this.attestationRootCertificates = attestationRootCertificates;
     }
-      
     public validateAttestationRootCertificates(): boolean {
         if(this.attestationRootCertificates.length == 0 || this.attestationRootCertificates === undefined) {
             return false;
@@ -671,8 +953,7 @@ class MetadataV3 {
             }
         }
         return true;
-    }
-      
+    } 
     public isValidEcdaaTrustAnchor(trustAnchor: ecdaaTrustAnchorsType): boolean {
         if (
           typeof trustAnchor.X !== 'string' ||
