@@ -268,9 +268,9 @@ class MetadataV3 {
 
         if(metadataV2.getAttestationTypes() !== undefined) {
             let auxAttestationTypes: string[] = [];
-            for(const ele in metadataV2.getAttestationTypes()) {
-                auxAttestationTypes.push(attestations[ele]);
-            }
+            metadataV2.getAttestationTypes().forEach(element => {
+                auxAttestationTypes.push(attestations[element]);
+            });
             metadataV3.setAttestationTypes(auxAttestationTypes);
         }
 
