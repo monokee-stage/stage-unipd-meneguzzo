@@ -264,7 +264,7 @@ class MetadataV3 {
                 auxPublicKeyAlgAndEncoding.push(PKAlgAndEncodings[ele]);
             }
         }
-        metadataV3.setPublicKeyAlgAndEncodings(auxAuthenticationAlgorithms);
+        metadataV3.setPublicKeyAlgAndEncodings(auxPublicKeyAlgAndEncoding);
 
         if(metadataV2.getAttestationTypes() !== undefined) {
             let auxAttestationTypes: string[] = [];
