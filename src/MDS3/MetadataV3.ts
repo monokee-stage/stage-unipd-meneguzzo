@@ -240,9 +240,9 @@ class MetadataV3 {
 
         metadataV3.setSchema(3);
 
-        // if(metadataV2.getUpv() !== undefined) {
-        //     metadataV3.setupv(metadataV2.getAuthenticatorVersion()!)
-        // }
+        if(metadataV2.getUpv() !== undefined) {
+            metadataV3.setUpv(metadataV2.getUpv()!)
+        }
 
         let auxAuthenticationAlgorithms: string[] = [];
         if(metadataV2.getAuthenticationAlgorithm() !== undefined) {
@@ -634,6 +634,9 @@ class MetadataV3 {
     private upv: upvType[];
     public getUpv(): upvType[] {
         return this.upv;
+    }
+    private setUpv(upv: upvType[]) {
+        this.upv = upv;
     }
     public validateUpv(): boolean {
         if (!Array.isArray(this.upv) || this.upv.length === 0) {

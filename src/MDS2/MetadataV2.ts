@@ -187,6 +187,183 @@ class MetadataV2 {
     //     return result;
     // }
 
+    public static ConverterFromV3toV2(metadataV3: MetadataV3): MetadataV2 {
+        let metadataV2 = new MetadataV2();
+
+        if(metadataV3.getLegalHeader() !== undefined) {
+            metadataV2.setLegalHeader(metadataV3.getLegalHeader()!)
+        }
+
+        if(metadataV3.getAAID() !== undefined) {
+            metadataV2.setLegalHeader(metadataV3.getAAID()!)
+        }
+
+        if(metadataV3.getAAGUID() !== undefined) {
+            metadataV2.setAAGUID(metadataV3.getAAGUID()!)
+        }
+
+        if(metadataV3.getAttestationCertificateKeyIdentifiers() !== undefined) {
+            metadataV2.setAttestationCertificateKeyIdentifiers(metadataV3.getAttestationCertificateKeyIdentifiers()!)
+        }
+
+        if(metadataV3.getDescription() !== undefined) {
+            metadataV2.setDescription(metadataV3.getDescription()!)
+        }
+
+        if(metadataV3.getAlternativeDescriptions() !== undefined) {
+            metadataV2.setAlternativeDescriptions(metadataV3.getAlternativeDescriptions()!)
+        }
+
+        if(metadataV3.getAuthenticatorVersion() !== undefined) {
+            metadataV2.setAuthenticatorVersion(metadataV3.getAuthenticatorVersion()!)
+        }
+
+        if(metadataV3.getProtocolFamily() !== undefined) {
+            metadataV2.setProtocolFamily(metadataV3.getProtocolFamily()!)
+        }
+
+        switch(metadataV2.getProtocolFamily()) {
+            case 'uaf': {
+                metadataV2.setAssertionScheme('UAFV1TLV');
+                break;
+            }
+            case 'u2f': {
+                metadataV2.setAssertionScheme('U2FV1BIN');
+                break;
+            }
+            case 'fido2': {
+                metadataV2.setAssertionScheme('FIDOV2');
+                break;
+            }
+        }
+
+        if(metadataV3.getAuthenticationAlgorithms() !== undefined) {
+            let first: boolean = true;
+            let auxAuthenticationAlgorithms: number[] = [];
+            for(const ele of metadataV3.getAuthenticationAlgorithms()) {
+                let index: number = authAlgorithm[ele as keyof typeof authAlgorithm];
+                if(first) {
+                    metadataV2.setAuthenticationAlgorithm(index);
+                    first = false;
+                } else {
+                    auxAuthenticationAlgorithms.push(index);
+                }
+            }
+            if(auxAuthenticationAlgorithms.length != 0) {
+                metadataV2.setAuthenticationAlgorithms(auxAuthenticationAlgorithms);
+            }
+        }
+
+        if(metadataV3.getPublicKeyAlgAndEncodings() !== undefined) {
+            let first: boolean = true;
+            let auxPublicKeyAlgAndEncodings: number[] = [];
+            for(const ele of metadataV3.getPublicKeyAlgAndEncodings()) {
+                let index: number = PKAlgAndEncodings[ele as keyof typeof PKAlgAndEncodings];
+                if(first) {
+                    metadataV2.setPublicKeyAlgAndEncoding(index);
+                    first = false;
+                } else {
+                    auxPublicKeyAlgAndEncodings.push(index);
+                }
+            }
+            if(auxPublicKeyAlgAndEncodings.length != 0) {
+                metadataV2.setPublicKeyAlgAndEncodings(auxPublicKeyAlgAndEncodings);
+            }
+        }
+        
+        if(metadataV3.getAttestationTypes() !== undefined) {
+            let auxAttestationTypes: number[] = [];
+            for(const ele of metadataV3.getAttestationTypes()) {
+                let index: number = attestations[ele as keyof typeof attestations];
+                auxAttestationTypes.push(index);
+            }
+            if(auxAttestationTypes.length != 0) {
+                metadataV2.setAttestationTypes(auxAttestationTypes);
+            }
+        }
+
+        //userVerificationDetails
+
+        if(metadataV3.getKeyProtection() !== undefined) {
+            let auxKeyProtection: number = 0;
+            for(const ele of metadataV3.getKeyProtection()) {
+                let index: number = KProtection[ele as keyof typeof KProtection];
+                auxKeyProtection += index;
+            }    
+            metadataV2.setKeyProtection(auxKeyProtection);
+        }
+
+        if(metadataV3.getIsKeyRestricted() !== undefined) {
+            metadataV2.setIsKeyRestricted(metadataV3.getIsKeyRestricted()!)
+        }
+
+        if(metadataV3.getIsFreshUserVerificationRequired() !== undefined) {
+            metadataV2.setIsFreshUserVerificationRequired(metadataV3.getIsFreshUserVerificationRequired()!)
+        }
+
+        if(metadataV3.getMatcherProtection() !== undefined) {
+            let auxMatcherProtection: number = 0;
+            for(const ele of metadataV3.getMatcherProtection()) {
+                let index: number = matcher[ele as keyof typeof matcher];
+                auxMatcherProtection += index;
+            }    
+            metadataV2.setMatcherProtection(auxMatcherProtection);
+        }
+
+        if(metadataV3.getCryptoStrength() !== undefined) {
+            metadataV2.setCryptoStrength(metadataV3.getCryptoStrength()!)
+        }
+
+        //operatingEnv
+
+        if(metadataV3.getAttachmentHint() !== undefined) {
+            let auxAttachmentHint: number = 0;
+            for(const ele of metadataV3.getAttachmentHint()) {
+                let index: number = attachmentHintValues[ele as keyof typeof attachmentHintValues];
+                auxAttachmentHint += index;
+            }    
+            metadataV2.setAttachmentHint(auxAttachmentHint);
+        }
+        
+        //isSecondFactorOnly
+
+        if(metadataV3.getTcDisplay() !== undefined) {
+            let auxTcDisplay: number = 0;
+            for(const ele of metadataV3.getTcDisplay()) {
+                let index: number = tcDisplayValues[ele as keyof typeof tcDisplayValues];
+                auxTcDisplay += index;
+            }    
+            metadataV2.setTcDisplay(auxTcDisplay);
+        }
+
+        if(metadataV3.getTcDisplayContentType() !== undefined) {
+            metadataV2.setTcDisplayContentType(metadataV3.getTcDisplayContentType()!)
+        }
+
+        if(metadataV3.getTcDisplayPNGCharacteristics() !== undefined) {
+            metadataV2.setTcDisplayPNGCharacteristics(metadataV3.getTcDisplayPNGCharacteristics()!)
+        }
+
+        if(metadataV3.getAttestationRootCertificates() !== undefined) {
+            metadataV2.setAttestationRootCertificates(metadataV3.getAttestationRootCertificates())
+        }
+
+        if(metadataV3.getEcdaaTrustAnchors() !== undefined) {
+            metadataV2.setEcdaaTrustAnchors(metadataV3.getEcdaaTrustAnchors()!)
+        }
+
+        if(metadataV3.getIcon() !== undefined) {
+            metadataV2.setIcon(metadataV3.getIcon()!)
+        }
+
+        if(metadataV3.getSupportedExtensions() !== undefined) {
+            metadataV2.setSupportedExtensions(metadataV3.getSupportedExtensions()!)
+        }
+
+        return metadataV2;
+    }
+
+
     private legalHeader?: string;
     public getLegalHeader() {
         return this.legalHeader;
@@ -249,7 +426,6 @@ class MetadataV2 {
         }
     }
       
-
     private attestationCertificateKeyIdentifiers?: string[];
     public getAttestationCertificateKeyIdentifiers(): string[] | undefined {
         return this.attestationCertificateKeyIdentifiers;
@@ -347,6 +523,9 @@ class MetadataV2 {
     private upv: upvType[];
     public getUpv(): upvType[] {
         return this.upv;
+    }
+    private setUpv(upv: upvType[]) {
+        this.upv = upv;
     }
     public validateUpv(): boolean {
         if (!Array.isArray(this.upv) || this.upv.length === 0) {
@@ -811,7 +990,6 @@ class MetadataV2 {
         }
         return true;
     }
-      
     public isValidEcdaaTrustAnchor(trustAnchor: ecdaaTrustAnchorsType): boolean {
         if (
           typeof trustAnchor.X !== 'string' ||

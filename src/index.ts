@@ -18,7 +18,9 @@ try {
     
     const metadataV3 = MetadataV3.initialize(MDS3jsonObject);
     validateMetadataV3(metadataV3);    
-    console.log(MetadataV3.ConverterFromV2toV3(metadataV2));
+    // console.log(MetadataV3.ConverterFromV2toV3(metadataV2));
+    console.log(MetadataV2.ConverterFromV3toV2(metadataV3));
+
 } catch(error) {
     console.log(error);
 
